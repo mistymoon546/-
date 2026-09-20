@@ -2,7 +2,7 @@
  * map.js — SVG 한국 지도 렌더링 및 인터랙션
  */
 
-let selectedRegion = null;
+// selectedRegion은 app.js에서 전역으로 선언됨
 let tooltipEl = null;
 
 function initMap() {
