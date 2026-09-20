@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>한국형 AI 데이터센터 입지 시뮬레이터 | Korea DC Site Simulator</title>
+  <meta name="description" content="한국의 사계절 특성과 전력망 상황을 반영한 AI 데이터센터 최적 입지 도출 시뮬레이터. 냉각 부하, 인구 밀집도, 전력 수요를 종합 분석합니다." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- 배경 파티클 캔버스 -->
+  <canvas id="bgCanvas"></canvas>
+
+  <!-- 헤더 -->
+  <header class="app-header">
+    <div class="header-left">
+      <div class="logo-icon">⚡</div>
+      <div class="header-titles">
+        <h1 class="app-title">AI 데이터센터 입지 시뮬레이터</h1>
+        <p class="app-subtitle">글로벌 프론티어 · 한국형 전력망 유연화 연구</p>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="season-tabs" id="seasonTabs">
+        <button class="season-btn active" data-season="spring" id="btnSpring">🌸 봄</button>
+        <button class="season-btn" data-season="summer" id="btnSummer">☀️ 여름</button>
+        <button class="season-btn" data-season="autumn" id="btnAutumn">🍂 가을</button>
+        <button class="season-btn" data-season="winter" id="btnWinter">❄️ 겨울</button>
+      </div>
+      <div class="sim-status" id="simStatus">
+        <span class="status-dot"></span>
+        <span class="status-text">시뮬레이션 실행 중</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- 메인 레이아웃 -->
+  <main class="app-main">
+
+    <!-- 왼쪽: 조건 설정 패널 -->
+    <aside class="control-panel" id="controlPanel">
+      <div class="panel-section">
+        <h2 class="panel-title">🌡️ 열 환경 조건</h2>
+
+        <div class="control-group">
+          <label class="control-label">
+            외기 최고 온도
+            <span class="ctrl-badge" id="tempLabel">33°C</span>
+          </label>
+          <input type="range" class="ctrl-slider" id="tempSlider" min="20" max="45" value="33" step="1" />
+          <div class="slider-scale">
+            <span>20°C (쾌적)</span>
+            <span>45°C (폭염)</span>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label class="control-label">
+            냉각 부하 강도
+            <span class="ctrl-badge" id="coolingLabel">보통</span>
+          </label>
+          <input type="range" class="ctrl-slider" id="coolingSlider" min="1" max="5" value="3" step="1" />
+          <div class="slider-scale">
+            <span>낮음 (소규모)</span>
+            <span>매우 높음 (대형)</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <h2 class="panel-title">🔊 소음 · 주거환경</h2>
+
+        <div class="control-group">
+          <label class="control-label">
+            소음 발생 수준
+            <span class="ctrl-badge" id="noiseLabel">75 dB</span>
+          </label>
+          <input type="range" class="ctrl-slider" id="noiseSlider" min="50" max="100" value="75" step="5" />
+          <div class="slider-scale">
+            <span>50 dB (조용)</span>
+            <span>100 dB (산업)</span>
+          </div>
+        </div>
+
+        <div class="noise-impact" id="noiseImpact">
+          <div class="impact-row">
+            <span class="impact-icon">🏠</span>
+            <span class="impact-text" id="noiseImpactText">반경 500m 내 주거지 영향 있음</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <h2 class="panel-title">⚡ 전력 · 인프라</h2>
+
+        <div class="control-group">
+          <label class="control-label">
+            전력 수요 규모
+            <span class="ctrl-badge" id="powerLabel">200 MW</span>
+          </label>
+          <input type="range" class="ctrl-slider" id="powerSlider" min="50" max="500" value="200" step="50" />
+          <div class="slider-scale">
+            <span>50 MW (소형)</span>
+            <span>500 MW (초대형)</span>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label class="control-label">
+            재생에너지 연계 비율
+            <span class="ctrl-badge" id="renewLabel">30%</span>
+          </label>
+          <input type="range" class="ctrl-slider" id="renewSlider" min="0" max="100" value="30" step="10" />
+          <div class="slider-scale">
+            <span>0% (화력 의존)</span>
+            <span>100% (완전 재생)</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <h2 class="panel-title">👥 지역사회 수용성</h2>
+
+        <div class="control-group">
+          <label class="control-label">
+            인구밀도 회피 강도
+            <span class="ctrl-badge" id="popLabel">중간</span>
+          </label>
+          <input type="range" class="ctrl-slider" id="popSlider" min="1" max="5" value="3" step="1" />
+          <div class="slider-scale">
+            <span>완화 (도심 허용)</span>
+            <span>엄격 (오지만)</span>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label class="control-label">
+            폐열 활용 지역 연계
+            <span class="ctrl-badge" id="heatLabel">미연계</span>
+          </label>
+          <input type="range" class="ctrl-slider" id="heatSlider" min="0" max="3" value="0" step="1" />
+          <div class="slider-scale">
+            <span>없음</span>
+            <span>완전 연계</span>
+          </div>
+        </div>
+      </div>
+
+      <button class="run-btn" id="runBtn" onclick="runSimulation()">
+        <span class="run-icon">▶</span> 시뮬레이션 실행
+      </button>
+    </aside>
+
+    <!-- 가운데: 한국 지도 -->
+    <section class="map-section">
+      <div class="map-header">
+        <h2 class="map-title">한국 지역별 적합도 분포</h2>
+        <div class="map-legend">
+          <span class="legend-item"><span class="legend-dot excellent"></span>최적 입지</span>
+          <span class="legend-item"><span class="legend-dot good"></span>적합</span>
+          <span class="legend-item"><span class="legend-dot fair"></span>조건부 가능</span>
+          <span class="legend-item"><span class="legend-dot poor"></span>부적합</span>
+        </div>
+      </div>
+      <div class="map-container">
+        <svg id="koreaMap" viewBox="0 0 600 700" xmlns="http://www.w3.org/2000/svg">
+          <!-- 한국 지역 SVG 폴리곤 -->
+        </svg>
+        <!-- 소음 반경 오버레이 (선택된 지역에 표시) -->
+        <div class="noise-radius-overlay" id="noiseRadiusOverlay"></div>
+      </div>
+      <div class="season-info-bar" id="seasonInfo">
+        <div class="season-stat">
+          <span class="stat-icon">🌡️</span>
+          <span class="stat-label">계절 평균 기온</span>
+          <span class="stat-value" id="statTemp">15°C</span>
+        </div>
+        <div class="season-stat">
+          <span class="stat-icon">⚡</span>
+          <span class="stat-label">전력망 부하율</span>
+          <span class="stat-value" id="statGrid">65%</span>
+        </div>
+        <div class="season-stat">
+          <span class="stat-icon">💧</span>
+          <span class="stat-label">냉각수 가용성</span>
+          <span class="stat-value" id="statWater">양호</span>
+        </div>
+        <div class="season-stat">
+          <span class="stat-icon">☀️</span>
+          <span class="stat-label">재생에너지 출력</span>
+          <span class="stat-value" id="statRenew">40%</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 오른쪽: 결과 패널 -->
+    <aside class="result-panel" id="resultPanel">
+      <div class="panel-section">
+        <h2 class="panel-title">📊 입지 평가 결과</h2>
+        <div class="results-list" id="resultsList">
+          <div class="result-placeholder">
+            <span class="placeholder-icon">🗺️</span>
+            <p>시뮬레이션을 실행하면<br/>지역별 적합도가 표시됩니다</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <h2 class="panel-title">✅ 체크리스트</h2>
+        <div class="checklist" id="checklist">
+          <div class="check-item" id="chkTemp">
+            <span class="check-icon">⬜</span>
+            <div class="check-content">
+              <span class="check-name">열 환경 관리 가능</span>
+              <span class="check-desc">외기온도 기반 냉각 부하 허용 범위</span>
+            </div>
+          </div>
+          <div class="check-item" id="chkNoise">
+            <span class="check-icon">⬜</span>
+            <div class="check-content">
+              <span class="check-name">소음 영향 최소화</span>
+              <span class="check-desc">주거지 이격거리 확보 여부</span>
+            </div>
+          </div>
+          <div class="check-item" id="chkPower">
+            <span class="check-icon">⬜</span>
+            <div class="check-content">
+              <span class="check-name">전력 공급 안정성</span>
+              <span class="check-desc">전력망 수용 용량 충족 여부</span>
+            </div>
+          </div>
+          <div class="check-item" id="chkPop">
+            <span class="check-icon">⬜</span>
+            <div class="check-content">
+              <span class="check-name">님비 리스크 최소화</span>
+              <span class="check-desc">인구밀도 기준 회피 달성 여부</span>
+            </div>
+          </div>
+          <div class="check-item" id="chkRenew">
+            <span class="check-icon">⬜</span>
+            <div class="check-content">
+              <span class="check-name">재생에너지 연계</span>
+              <span class="check-desc">탄소중립 목표 기여 여부</span>
+            </div>
+          </div>
+          <div class="check-item" id="chkHeat">
+            <span class="check-icon">⬜</span>
+            <div class="check-content">
+              <span class="check-name">지역사회 폐열 활용</span>
+              <span class="check-desc">지역 난방·농업 연계 가능 여부</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <h2 class="panel-title">⚠️ 위험 경고</h2>
+        <div class="warnings-container" id="warningsContainer">
+          <div class="no-warnings">현재 경고 없음</div>
+        </div>
+      </div>
+
+      <!-- 선택 지역 상세 -->
+      <div class="panel-section" id="regionDetailSection" style="display:none;">
+        <h2 class="panel-title">📍 <span id="regionDetailName">지역</span> 상세 분석</h2>
+        <div class="region-detail" id="regionDetail"></div>
+      </div>
+    </aside>
+  </main>
+
+  <!-- 소음 시뮬레이터 모달 -->
+  <div class="modal-overlay" id="noiseModal" style="display:none;">
+    <div class="modal-content">
+      <button class="modal-close" onclick="closeNoiseModal()">✕</button>
+      <h3 class="modal-title">🔊 소음 영향 반경 시뮬레이터</h3>
+      <div class="noise-sim-container">
+        <canvas id="noiseCanvas" width="400" height="400"></canvas>
+        <div class="noise-legend">
+          <div class="noise-zone red-zone">🔴 거주 불가 구역</div>
+          <div class="noise-zone orange-zone">🟠 수면 영향 구역</div>
+          <div class="noise-zone yellow-zone">🟡 민원 발생 구역</div>
+          <div class="noise-zone green-zone">🟢 영향 없음</div>
+        </div>
+        <div class="noise-values" id="noiseValues"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 하단 상태바 -->
+  <footer class="app-footer">
+    <div class="footer-info">
+      <span>📅 시뮬레이션 기준: <span id="footerSeason">봄</span></span>
+      <span>|</span>
+      <span>🏭 데이터센터 규모: <span id="footerSize">중형</span></span>
+      <span>|</span>
+      <span>최종 업데이트: <span id="footerTime"></span></span>
+    </div>
+    <div class="footer-actions">
+      <button class="footer-btn" onclick="openNoiseModal()">🔊 소음 반경 시뮬레이터</button>
+      <button class="footer-btn" onclick="exportReport()">📋 결과 보고서 저장</button>
+      <button class="footer-btn" onclick="resetAll()">🔄 초기화</button>
+    </div>
+  </footer>
+
+  <script src="data.js"></script>
+  <script src="map.js"></script>
+  <script src="simulation.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
